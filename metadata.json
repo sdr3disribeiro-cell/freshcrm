@@ -1,0 +1,5 @@
+{
+  "name": "FreshCRM",
+  "description": "A minimalist, personal CRM system inspired by Freshworks. Features lead management, interaction timelines, task scheduling with calendar views, and CSV import capabilities.",
+  "requestFramePermissions": []
+}
