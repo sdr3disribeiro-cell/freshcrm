@@ -489,7 +489,7 @@ export const exportToPDF = (companies: Company[], fileName?: string) => {
 };
 
 // --- GENERATE ITINERARY PDF (ROTEIRO - ENHANCED) ---
-export const generateItineraryPDF = (companies: Company[], title: string = "Roteiro de Visitas", customNotes: Record<string, string> = {}) => {
+export const generateItineraryPDF = (companies: Company[], title: string = "Roteiro de Visitas", customNotes: Record<string, string> = {}, mapImage?: string) => {
     const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -508,6 +508,20 @@ export const generateItineraryPDF = (companies: Company[], title: string = "Rote
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} | ${companies.length} Clientes`, 283, 16, { align: 'right' });
+
+    let tableStartY = 30;
+
+    // --- MAP IMAGE ---
+    if (mapImage) {
+        // Add map image
+        // A4 Landscape is 297mm x 210mm
+        // Margins 14mm
+        const imgWidth = 297 - 28; // Full width minus margins
+        const imgHeight = 90; // Fixed height for map
+
+        doc.addImage(mapImage, 'PNG', 14, 30, imgWidth, imgHeight);
+        tableStartY = 30 + imgHeight + 10; // Push table down
+    }
 
     // --- TABLE COLUMNS ---
     const tableColumn = [
@@ -561,7 +575,7 @@ export const generateItineraryPDF = (companies: Company[], title: string = "Rote
     autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
-        startY: 30,
+        startY: tableStartY,
         theme: 'grid',
         styles: {
             fontSize: 9,

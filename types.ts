@@ -63,10 +63,18 @@ export interface Company {
   // Campos Auxiliares do CRM
   representative: string;  // Mantido para compatibilidade, pode ser igual a REGIAO
   tags: string[];
+  lat?: number;
+  lng?: number;
   receitaStatus?: string;
   lastReceitaCheck?: string;
   purchases: Purchase[];
   delinquencyHistory: Delinquency[];
+
+  // Lead Specific Fields
+  isLead?: boolean;
+  leadStatus?: 'New' | 'Qualified' | 'Disqualified';
+  sdr?: string;
+  origin?: string;
 }
 
 export interface Note {
@@ -100,6 +108,18 @@ export interface Cadence {
   status?: 'active' | 'completed'; // New field
 }
 
+export interface Itinerary {
+  id: string;
+  title: string;
+  representativeId: string;
+  representativeName?: string; // Optional helper
+  companyIds: string[]; // List of Company IDs
+  createdAt: string;
+  scheduledDate: string; // ISO Date
+  routeOrder?: string[]; // Array of company IDs in order
+  notes?: Record<string, string>; // Notes per company
+}
+
 export type TagColor = 'slate' | 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'pink' | 'teal';
 
 export interface Database {
@@ -113,7 +133,7 @@ export interface Database {
   type?: 'general' | 'sales' | 'inadimplencia'; // Added inadimplencia
 }
 
-export type ViewMode = 'dashboard' | 'list' | 'calendar' | 'detail' | 'cadences' | 'databases' | 'roteiro' | 'deals';
+export type ViewMode = 'dashboard' | 'list' | 'calendar' | 'detail' | 'cadences' | 'roteiro' | 'deals' | 'leads';
 
 export interface CRMState {
   companies: Company[];
@@ -121,9 +141,17 @@ export interface CRMState {
   tasks: Task[];
   cadences: Cadence[];
   databases: Database[];
+  itineraries: Itinerary[];
 }
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
+
+export interface User {
+  email: string;
+  name: string;
+  role: string;
+  avatar?: string;
+}
 
 export interface ToastMessage {
   id: string;
@@ -131,4 +159,12 @@ export interface ToastMessage {
   title: string;
   message?: string;
   duration?: number;
+}
+
+export type Sign = 'Capricorn' | 'Aquarius' | 'Gemini';
+
+export interface Horoscope {
+  sign: Sign;
+  tip: string;
+  date: string;
 }

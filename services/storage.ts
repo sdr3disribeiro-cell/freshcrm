@@ -11,7 +11,8 @@ const INITIAL_DATA = {
   notes: [] as Note[],
   tasks: [] as Task[],
   cadences: [] as Cadence[],
-  databases: [] as Database[]
+  databases: [] as Database[],
+  itineraries: [] as import('../types').Itinerary[] // Explicit type to avoid circular dependency if needed, or just let TS infer
 };
 
 type AppData = typeof INITIAL_DATA;
@@ -61,6 +62,7 @@ export const loadData = async (): Promise<AppData> => {
           // Ensure new fields exist if migrating
           if (!parsed.cadences) parsed.cadences = [];
           if (!parsed.databases) parsed.databases = [];
+          if (!parsed.itineraries) parsed.itineraries = [];
 
           // Cleanup / Migration Logic
           if (parsed.companies) {

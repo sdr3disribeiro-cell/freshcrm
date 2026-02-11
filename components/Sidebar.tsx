@@ -1,6 +1,7 @@
 import React from 'react';
-import { Users, Calendar, PlusCircle, Upload, ListTodo, Database, LayoutDashboard, Moon, Sun, Map as MapIcon, RefreshCw, Briefcase } from 'lucide-react';
+import { Users, Calendar, PlusCircle, Upload, ListTodo, Database, LayoutDashboard, Moon, Sun, Map as MapIcon, RefreshCw, Briefcase, X, UserPlus, LogOut, Settings } from 'lucide-react';
 import { ViewMode } from '../types';
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
   currentView: ViewMode;
@@ -8,134 +9,138 @@ interface SidebarProps {
   onImport: () => void;
   onNewCompany: () => void;
   onSync: () => void;
+  onSettings: () => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
+  isOpen: boolean;        // Mobile state
+  onClose: () => void;    // Close handler
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onImport, onNewCompany, onSync, isDarkMode, toggleTheme }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  currentView, onChangeView, onImport, onNewCompany, onSync, onSettings,
+  isDarkMode, toggleTheme, isOpen, onClose
+}) => {
+
   const navItemClass = (active: boolean) =>
-    `flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer mb-1 ${active
-      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium'
-      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
+    `flex items-center gap-3 p-3 text-sm font-medium rounded-r-full transition-all cursor-pointer mb-2 border-l-4 ${active
+      ? 'border-orange-500 bg-orange-500/10 text-orange-400'
+      : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
     }`;
 
+  const renderItem = (view: ViewMode, icon: React.ReactNode, label: string) => (
+    <motion.div
+      whileHover={{ x: 5 }}
+      whileTap={{ scale: 0.95 }}
+      className={navItemClass(currentView === view)}
+      onClick={() => { onChangeView(view); onClose(); }}
+      title={label}
+    >
+      {icon}
+      <span>{label}</span>
+    </motion.div>
+  );
+
   return (
-    <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen sticky top-0 transition-colors duration-200 z-50">
-      <div className="p-6 flex items-center gap-2 flex-shrink-0">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-600/20">
-          F
-        </div>
-        <span className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">FreshCRM</span>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      <div className="px-4 mb-4 flex-shrink-0">
-        <button
-          onClick={onNewCompany}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-all shadow-sm shadow-blue-200 dark:shadow-none"
-        >
-          <PlusCircle size={18} />
-          <span>Nova Empresa</span>
-        </button>
-      </div>
-
-      <nav className="flex-1 px-4 py-2 overflow-y-auto custom-scrollbar min-h-0">
-        <div
-          className={navItemClass(currentView === 'dashboard')}
-          onClick={() => onChangeView('dashboard')}
-          title="Visão Geral"
-        >
-          <LayoutDashboard size={20} />
-          <span>Dashboard</span>
-        </div>
-        <div
-          className={navItemClass(currentView === 'list' || currentView === 'detail')}
-          onClick={() => onChangeView('list')}
-          title="Lista de Clientes"
-        >
-          <Users size={20} />
-          <span>Leads & Clientes</span>
-        </div>
-        <div
-          className={navItemClass(currentView === 'cadences')}
-          onClick={() => onChangeView('cadences')}
-          title="Processos de Venda"
-        >
-          <ListTodo size={20} />
-          <span>Cadências</span>
-        </div>
-        {/* ROTEIRO MODULE */}
-        <div
-          className={navItemClass(currentView === 'roteiro')}
-          onClick={() => onChangeView('roteiro')}
-          title="Gerar Roteiro de Visitas"
-        >
-          <MapIcon size={20} />
-          <span>Roteiro de Visitas</span>
-        </div>
-        <div
-          className={navItemClass(currentView === 'databases')}
-          onClick={() => onChangeView('databases')}
-          title="Gestão de Dados"
-        >
-          <Database size={20} />
-          <span>Base de Dados</span>
-        </div>
-        <div
-          className={navItemClass(currentView === 'calendar')}
-          onClick={() => onChangeView('calendar')}
-          title="Agenda"
-        >
-          <Calendar size={20} />
-          <span>Calendário</span>
-        </div>
-
-        <div
-          className={navItemClass(currentView === 'deals')}
-          onClick={() => onChangeView('deals')}
-          title="Oportunidades de Negócio"
-        >
-          <Briefcase size={20} />
-          <span>Negócios</span>
-        </div>
-
-        <div className="my-4 border-t border-slate-100 dark:border-slate-800"></div>
-
-        <div
-          className="flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          onClick={onSync}
-          title="Forçar atualização da planilha"
-        >
-          <RefreshCw size={20} />
-          <span>Sincronizar Dados</span>
-        </div>
-      </nav>
-
-      {/* Dark Mode Toggle */}
-      <div className="px-4 py-2 flex-shrink-0 mt-auto">
-        <div
-          onClick={toggleTheme}
-          className="flex items-center justify-between p-3 rounded-lg cursor-pointer text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
+      {/* Sidebar Container */}
+      <motion.aside
+        className={`fixed lg:static top-0 left-0 h-full w-64 bg-[#0F1115] border-r border-slate-800 flex flex-col z-50`}
+        initial={false}
+        animate={{ x: isOpen ? 0 : 0 }}
+      >
+        {/* Logo Area */}
+        <div className="p-6 flex items-center justify-between flex-shrink-0 border-b border-slate-800/50">
           <div className="flex items-center gap-3">
-            {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
-            <span className="text-sm font-medium">{isDarkMode ? 'Modo Escuro' : 'Modo Claro'}</span>
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-orange-400 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-orange-900/20">
+              <span className="text-xl">V</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-tight">VistaCRM</h1>
+              <p className="text-xs text-slate-500 uppercase tracking-widest">Enterprise</p>
+            </div>
           </div>
-          <div className={`w-8 h-4 rounded-full relative transition-colors ${isDarkMode ? 'bg-blue-600' : 'bg-slate-300'}`}>
-            <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${isDarkMode ? 'left-4.5 translate-x-1' : 'left-0.5'}`}></div>
-          </div>
+          <button onClick={onClose} className="lg:hidden text-slate-500">
+            <X size={24} />
+          </button>
         </div>
-      </div>
 
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
-        <button
-          onClick={onImport}
-          className="flex items-center gap-2 w-full justify-center p-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all text-sm"
-        >
-          <Upload size={16} />
-          <span>Importar CSV</span>
-        </button>
-      </div>
-    </aside>
+        {/* CTA Button */}
+        <div className="px-6 py-6">
+          <motion.button
+            whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(249, 115, 22, 0.3)" }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { onNewCompany(); onClose(); }}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white p-3.5 rounded-xl font-bold transition-all shadow-lg shadow-orange-900/20"
+          >
+            <PlusCircle size={20} />
+            <span>Nova Empresa</span>
+          </motion.button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4 overflow-y-auto custom-scrollbar">
+          <div className="mb-6">
+            <p className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Geral</p>
+            {renderItem('dashboard', <LayoutDashboard size={20} />, 'Dashboard')}
+            {renderItem('calendar', <Calendar size={20} />, 'Calendário')}
+          </div>
+
+          <div className="mb-6">
+            <p className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Vendas</p>
+            {renderItem('leads', <UserPlus size={20} />, 'Leads (Inbound)')}
+            {renderItem('deals', <Briefcase size={20} />, 'Pipeline / Negócios')}
+            {renderItem('cadences', <ListTodo size={20} />, 'Cadências')}
+            {renderItem('roteiro', <MapIcon size={20} />, 'Roteiro de Visitas')}
+          </div>
+
+          <div className="mb-6">
+            <p className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Dados</p>
+            {renderItem('list', <Users size={20} />, 'Base de Clientes')}
+          </div>
+        </nav>
+
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-slate-800 bg-[#0F1115]">
+          <motion.button
+            whileHover={{ x: 5 }}
+            onClick={() => { onSync(); onClose(); }}
+            className="flex items-center gap-3 w-full p-2 text-slate-400 hover:text-orange-400 transition-colors mb-2"
+          >
+            <RefreshCw size={18} />
+            <span className="text-sm font-medium">Sincronizar Dados</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ x: 5 }}
+            onClick={() => { onImport(); onClose(); }}
+            className="flex items-center gap-3 w-full p-2 text-slate-400 hover:text-blue-400 transition-colors mb-2"
+          >
+            <Upload size={18} />
+            <span className="text-sm font-medium">Importar CSV</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ x: 5 }}
+            onClick={() => { onSettings(); onClose(); }}
+            className="flex items-center gap-3 w-full p-2 text-slate-400 hover:text-pink-400 transition-colors"
+          >
+            <Settings size={18} />
+            <span className="text-sm font-medium">Configurações</span>
+          </motion.button>
+        </div>
+      </motion.aside>
+    </>
   );
 };
 

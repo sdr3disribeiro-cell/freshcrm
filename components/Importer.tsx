@@ -21,16 +21,18 @@ const Importer: React.FC<ImporterProps> = ({ isOpen, onClose, onImport }) => {
     try {
       const data = parseCSV(text);
       if (data.length === 0) throw new Error("Nenhum dado encontrado no arquivo.");
-      
-      const findValue = (row: any, candidates: string[]) => {
+
+      const findValue = (row: any, candidates: string[], exclude: string[] = []) => {
         const rowKeys = Object.keys(row);
+        // 1. Exact Match
         for (const candidate of candidates) {
-            const exactKey = rowKeys.find(k => k === candidate.toLowerCase());
-            if (exactKey) return row[exactKey];
+          const exactKey = rowKeys.find(k => k === candidate.toLowerCase());
+          if (exactKey && !exclude.some(e => exactKey.includes(e))) return row[exactKey];
         }
+        // 2. Contains Match
         for (const candidate of candidates) {
-            const foundKey = rowKeys.find(k => k.includes(candidate.toLowerCase()));
-            if (foundKey && row[foundKey]) return row[foundKey];
+          const foundKey = rowKeys.find(k => k.includes(candidate.toLowerCase()) && !exclude.some(e => k.includes(e)));
+          if (foundKey && row[foundKey]) return row[foundKey];
         }
         return '';
       };
@@ -39,7 +41,7 @@ const Importer: React.FC<ImporterProps> = ({ isOpen, onClose, onImport }) => {
         // Essential fields
         const name = findValue(row, ['nome', 'razao social', 'cliente', 'nome da empresa']);
         const codigo = findValue(row, ['codigo', 'id', 'cod']);
-        
+
         if (!name && !codigo) return null; // Skip empty rows
 
         // Parsing fields specific to the user request
@@ -72,9 +74,11 @@ const Importer: React.FC<ImporterProps> = ({ isOpen, onClose, onImport }) => {
           lastPurchaseDate: parseBrazilianDate(rawDate),
           lastPurchaseValue: parseBrazilianCurrency(rawValue),
           region: findValue(row, ['regiao']),
-          
+
           // Aux fields
-          representative: findValue(row, ['vendedor', 'representante']) || findValue(row, ['regiao']) || '',
+          representative: findValue(row, ['nome vendedor', 'vendedor', 'nome fantasia vendedor', 'consultor']) ||
+            findValue(row, ['representante'], ['legal', 'socio']) || // Avoid 'Representante Legal'
+            findValue(row, ['regiao']) || '',
           tags: (findValue(row, ['tags', 'categoria']) || '').split(/[,;]/).map((t: string) => t.trim()).filter(Boolean),
           purchases: [],
           delinquencyHistory: []
@@ -115,7 +119,7 @@ const Importer: React.FC<ImporterProps> = ({ isOpen, onClose, onImport }) => {
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Upload size={20} className="text-blue-600" /> 
+            <Upload size={20} className="text-blue-600" />
             Importação CSV
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -137,16 +141,16 @@ const Importer: React.FC<ImporterProps> = ({ isOpen, onClose, onImport }) => {
           </div>
 
           <div className="space-y-4">
-            <div 
+            <div
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group"
             >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                accept=".csv" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".csv"
+                className="hidden"
               />
               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
                 <FileSpreadsheet size={24} className="text-slate-500 group-hover:text-blue-600" />
@@ -169,7 +173,7 @@ const Importer: React.FC<ImporterProps> = ({ isOpen, onClose, onImport }) => {
               className="w-full h-32 p-4 border border-slate-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-blue-200 outline-none resize-none"
             />
           </div>
-          
+
           {error && (
             <div className="mt-3 text-red-500 text-sm flex items-center gap-2 bg-red-50 p-3 rounded-lg border border-red-100">
               <AlertCircle size={16} /> {error}
@@ -181,12 +185,12 @@ const Importer: React.FC<ImporterProps> = ({ isOpen, onClose, onImport }) => {
           <button onClick={onClose} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors">
             Cancelar
           </button>
-          <button 
+          <button
             onClick={() => processData(csvText)}
             disabled={!csvText.trim()}
             className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-             Processar Dados
+            Processar Dados
           </button>
         </div>
       </div>

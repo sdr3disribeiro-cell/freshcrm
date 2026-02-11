@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Company, Database, TagColor, ToastType } from '../types';
 import {
   Search, SlidersHorizontal, ArrowUpDown, ChevronDown, Check,
@@ -6,10 +6,10 @@ import {
   ArrowLeft, ArrowRight, EyeOff, Globe, Loader2, FileText, FileSpreadsheet,
   GripVertical, Filter, X, Trophy, Map as MapIcon
 } from 'lucide-react';
-import { formatCurrency, formatDate, formatDateTime, calculateLeadScore, generateItineraryPDF } from '../utils';
-import { differenceInDays } from 'date-fns';
+import { formatCurrency, formatDate, calculateLeadScore, generateItineraryPDF } from '../utils';
 import { TableSkeleton, DeleteConfirmationModal } from './UI';
 import { useDebounce } from '../hooks/useDebounce';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CompanyListProps {
   companies: Company[];
@@ -150,7 +150,7 @@ const CompanyList: React.FC<CompanyListProps> = ({
   };
 
   // Filter Logic with Multi-term support
-  const filteredCompanies = companies.filter(c => {
+  const filteredCompanies = useMemo(() => companies.filter(c => {
     // 1. Global Search (Multi-term AND logic)
     const terms = debouncedSearchTerm.toLowerCase().split(/\s+/).filter(Boolean);
 
@@ -191,10 +191,10 @@ const CompanyList: React.FC<CompanyListProps> = ({
     }
 
     return true;
-  });
+  }), [companies, debouncedSearchTerm, columnFilters, receitaFilter]);
 
   // Sort
-  const sortedCompanies = [...filteredCompanies].sort((a, b) => {
+  const sortedCompanies = useMemo(() => [...filteredCompanies].sort((a, b) => {
     let valA: any = a[sortField as keyof Company];
     let valB: any = b[sortField as keyof Company];
 
@@ -221,7 +221,7 @@ const CompanyList: React.FC<CompanyListProps> = ({
     if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
     if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
     return 0;
-  });
+  }), [filteredCompanies, sortField, sortOrder]);
 
   // --- API Integration ---
   const handleVerifyReceita = async () => {
@@ -385,7 +385,7 @@ const CompanyList: React.FC<CompanyListProps> = ({
   // --- Dynamic Column Definitions (Updated for new fields) ---
   const COLUMN_DEF: Record<ColumnKey, { label: string, sortKey: SortField }> = {
     codigo: { label: 'CÓDIGO', sortKey: 'clientCode' },
-    ativo: { label: 'ATIVO', sortKey: 'isActive' },
+    ativo: { label: 'STATUS (SAÚDE)', sortKey: 'isActive' },
     tipo: { label: 'TIPO', sortKey: 'type' },
     cnpj: { label: 'CPF/CNPJ', sortKey: 'cnpj' },
     ie: { label: 'IE', sortKey: 'ie' },
@@ -416,9 +416,23 @@ const CompanyList: React.FC<CompanyListProps> = ({
       case 'codigo':
         return <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{company.clientCode}</span>;
       case 'ativo':
-        return company.isActive
-          ? <span className="text-green-600 dark:text-green-400 font-bold text-xs">SIM</span>
-          : <span className="text-red-500 dark:text-red-400 font-bold text-xs">NÃO</span>;
+        return (
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              {company.isActive ? (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </>
+              ) : (
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              )}
+            </span>
+            {company.isActive
+              ? <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">ATIVO</span>
+              : <span className="text-red-500 dark:text-red-400 font-bold text-xs">INATIVO</span>}
+          </div>
+        );
       case 'tipo':
         return <span className="text-xs">{company.type}</span>;
       case 'cnpj':
@@ -802,4 +816,4 @@ const CompanyList: React.FC<CompanyListProps> = ({
   );
 };
 
-export default CompanyList;
+export default React.memo(CompanyList);

@@ -1,48 +1,81 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FreshCRM</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              slate: {
-                850: '#1e293b',
-                900: '#0f172a',
-                950: '#020617',
-              }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VistaCRM</title>
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              850: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
             }
           }
         }
       }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Google Identity Services & API Client -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" async defer></script>
-    
-    <style>
-      body { font-family: 'Inter', sans-serif; }
-      /* Custom scrollbar for a cleaner look */
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-      
-      .dark ::-webkit-scrollbar-track { background: transparent; }
-      .dark ::-webkit-scrollbar-thumb { background: #475569; }
-      .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-      
-      /* Drag and Drop Visuals */
-      .dragging-col { opacity: 0.4; border: 2px dashed #3b82f6; }
-      .drag-over-col { border-left: 2px solid #3b82f6; }
-    </style>
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Google Identity Services & API Client -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Custom scrollbar for a cleaner look */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .dark ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    /* Drag and Drop Visuals */
+    .dragging-col {
+      opacity: 0.4;
+      border: 2px dashed #3b82f6;
+    }
+
+    .drag-over-col {
+      border-left: 2px solid #3b82f6;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -60,10 +93,13 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased overflow-hidden transition-colors duration-200">
-    <div id="root"></div>
+
+<body
+  class="bg-[#09090b] text-slate-100 antialiased overflow-hidden transition-colors duration-200 selection:bg-orange-500/30 selection:text-orange-200">
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

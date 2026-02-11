@@ -1,5 +1,5 @@
 import { Company, Note, Task, Cadence, Database } from '../types';
-import { fetchSheetData, appendRow, appendRows, updateRow, objectToRow } from './googleSheetsClient';
+import { fetchSheetData, fetchSheetValues, appendRow, appendRows, updateRow, objectToRow, sheetToObjects } from './googleSheetsClient';
 import { loadData, saveData } from './storage';
 import { generateId, generateDeterministicId, parseBrazilianCurrency, parseBrazilianDate } from '../utils';
 import { differenceInDays } from 'date-fns';
@@ -48,6 +48,7 @@ const HEADERS = {
     cadences: ['id', 'name', 'description', 'status', 'items', 'createdAt'],
     databases: ['id', 'tagName', 'fileName', 'importedAt', 'matchedCount', 'totalRows', 'color', 'type'],
     // New Tab Mapping
+    leads: ['id', 'name', 'cnpj', 'phone', 'leadStatus', 'sdr', 'createdAt', 'notes'],
     inad: ['UF', 'DATA', 'VALOR', 'COD', 'NOME', 'CNPJ', 'CIDADE']
 };
 
@@ -85,6 +86,19 @@ const mapCompanyToSheetRow = (company: Company) => {
         lastreceitacheck: company.lastReceitaCheck,
         purchases: company.purchases,
         delinquencyhistory: company.delinquencyHistory
+    };
+};
+
+const mapLeadToSheetRow = (company: Company) => {
+    return {
+        id: company.id,
+        name: company.name,
+        cnpj: company.cnpj,
+        phone: company.mobile || company.phone,
+        leadstatus: company.leadStatus,
+        sdr: company.sdr,
+        createdat: new Date().toISOString(),
+        notes: '' // Placeholder if we want to sync a summary note
     };
 };
 
@@ -140,6 +154,48 @@ const mapDatabaseRowToCompany = (row: any): Company => {
     };
 };
 
+const mapLeadRowToCompany = (row: any): Company => {
+    // Robust ID Logic: Prefer ID from sheet, else derive from CNPJ/Name types
+    let id = row.id;
+    if (!id && (row.cnpj || row.name)) {
+        id = generateDeterministicId(row.cnpj || row.name);
+    }
+
+    return {
+        id: id || generateId(),
+
+        clientCode: '',
+        isActive: true, // Leads are active by default?
+        type: 'L', // L for Lead
+        cnpj: row.cnpj || row.CNPJ || '',
+        ie: '',
+        name: row.name || row.NAME || 'Lead Sem Nome',
+        fantasyName: row.name || row.NAME || '',
+        address: '',
+        neighborhood: '',
+        zip: '',
+        ibge: '',
+        cityCode: '',
+        city: '',
+        state: '',
+        phone: row.phone || row.PHONE || '',
+        mobile: row.phone || row.PHONE || '',
+        fax: '',
+        email: '',
+        region: '',
+        representative: '', // Don't map to representative, use SDR
+        tags: ['INBOUND'],
+        purchases: [],
+        delinquencyHistory: [],
+        lastPurchaseValue: 0,
+
+        // Lead Fields
+        isLead: true,
+        leadStatus: row.leadstatus || row.LEADSTATUS || 'New',
+        sdr: row.sdr || row.SDR
+    };
+};
+
 export const fetchAllData = async () => {
     // 1. Load from IndexedDB (Cache) first for speed
     const localData = await loadData();
@@ -153,7 +209,7 @@ export const fetchAllData = async () => {
     if (navigator.onLine) {
         try {
             // Fetch Standard Data + Inadimplencia Data + NEW Vendas Data + RAW Database Leads
-            const [companiesRaw, notesRaw, tasksRaw, cadencesRaw, databasesLeadsRaw, inadRaw, salesRaw] = await Promise.all([
+            const [companiesRaw, notesRaw, tasksRaw, cadencesRaw, databasesLeadsRaw, inadRaw, salesRaw, leadsRaw] = await Promise.all([
                 fetchSheetData('companies!A:ZZ'), // Extended range for more columns
                 fetchSheetData('notes!A:Z'),
                 fetchSheetData('tasks!A:Z'),
@@ -161,13 +217,15 @@ export const fetchAllData = async () => {
                 fetchSheetData('databases!A:Z'), // Now treating as Raw Leads
                 fetchSheetData('inad!A:Z').catch(() => []), // Fail safely
                 fetchSheetData('vendas!A:Z').catch(() => []), // Fail safely
+                fetchSheetValues('leads!A:Z').catch(() => []), // RAW Values for robust parsing
             ]);
 
             // DEBUG ALERT
             console.log("DEBUG COUNTS:", {
                 companies: companiesRaw?.length,
                 databases: databasesLeadsRaw?.length,
-                sales: salesRaw?.length
+                sales: salesRaw?.length,
+                leads: leadsRaw?.length
             });
             // Show alert only if databases is suspiciously empty or just to notify user
             // alert(`DEBUG: Companies: ${companiesRaw?.length || 0}, DB Leads: ${databasesLeadsRaw?.length || 0}`);
@@ -205,6 +263,37 @@ export const fetchAllData = async () => {
 
             // --- PROCESS RAW LEADS (DATABASES TAB) ---
             const databaseLeads = databasesLeadsRaw.map(mapDatabaseRowToCompany);
+
+            // --- PROCESS NEW LEADS (LEADS TAB - ROBUST PARSING) ---
+            let leadsList: Company[] = [];
+            if (leadsRaw && leadsRaw.length > 0) {
+                // Check if first row is header
+                const firstRow = leadsRaw[0];
+                const isHeader = firstRow[0] && String(firstRow[0]).toLowerCase().trim() === 'id';
+
+                let leadRows = leadsRaw;
+                if (isHeader) {
+                    // Standard parsing
+                    const leadsObjects = sheetToObjects(leadsRaw);
+                    leadsList = leadsObjects.map(mapLeadRowToCompany);
+                } else {
+                    // FALLBACK: NO HEADER DETECTED
+                    // Assume fixed column order: id, name, cnpj, phone, leadStatus, sdr, createdAt, notes
+                    leadsList = leadsRaw.map((row: any[]) => {
+                        const obj = {
+                            id: row[0],
+                            name: row[1],
+                            cnpj: row[2],
+                            phone: row[3],
+                            leadStatus: row[4],
+                            sdr: row[5],
+                            createdAt: row[6],
+                            notes: row[7]
+                        };
+                        return mapLeadRowToCompany(obj);
+                    });
+                }
+            }
 
 
             // --- 0. PRE-PROCESS SALES (VENDAS TAB) ---
@@ -295,6 +384,18 @@ export const fetchAllData = async () => {
                     }
                 }
 
+                // REGRA DE NEGÓCIO: Definir Representante baseado na Venda mais recente
+                // Se houver histórico de compras, pega o vendedor da última compra.
+                // Caso contrário, tenta pegar do cadastro da empresa.
+                let representative = safeStr(c.representative || c.vendedor);
+                if (purchases.length > 0) {
+                    // purchases array is already sorted desc by date above
+                    const lastSale = purchases[0];
+                    if (lastSale.sellerName) {
+                        representative = lastSale.sellerName;
+                    }
+                }
+
                 // REGRA DE NEGÓCIO: ATIVO/INATIVO (6 MESES)
                 let isActive = true; // Default
                 if (lastPurchaseDate) {
@@ -328,7 +429,7 @@ export const fetchAllData = async () => {
                     lastPurchaseDate: lastPurchaseDate,
                     lastPurchaseValue: lastPurchaseValue,
                     region: safeStr(c.regiao || c.region),
-                    representative: safeStr(c.representative || c.vendedor),
+                    representative: representative,
                     receitaStatus: safeStr(c.receitastatus),
                     lastReceitaCheck: safeStr(c.lastreceitacheck),
                     tags: safeArray(c.tags, true),
@@ -441,17 +542,23 @@ export const fetchAllData = async () => {
                     lead.tags.forEach(t => {
                         if (!target!.tags.includes(t)) target!.tags.push(t);
                     });
-
-                    // Optional: Update representative if missing?
-                    // if (!target.representative && lead.representative) target.representative = lead.representative;
-
                 } else {
-                    // New Unique Lead
-                    // Add [DB] prefix just to be sure user sees it for now? No, user wants correct data.
-                    // lead.name = `* ${lead.name}`; // Subtle marker?
-
                     processedCompanies.push(lead);
                     if (leadCnpj) companyMap.set(leadCnpj, lead);
+                }
+            });
+
+            // --- MERGE LEADS SHEET (PRIORITY) ---
+            // We merge these as standard companies but with isLead flag.
+            leadsList.forEach(lead => {
+                const existing = processedCompanies.find(c => c.id === lead.id);
+                if (!existing) {
+                    processedCompanies.unshift(lead); // Add to top
+                } else {
+                    // Update existing with lead info if needed
+                    existing.isLead = true;
+                    existing.leadStatus = lead.leadStatus;
+                    existing.sdr = lead.sdr;
                 }
             });
 
@@ -591,25 +698,41 @@ export const processSyncQueue = async () => {
                         }
                         break;
                     case 'company':
-                        // SAFE GUARD: Only allow updates if they are strictly user interactions
-                        // Logic: The "bug" was creating new rows. 
-                        // Check if this is a CREATE action without a known stable ID? 
-                        // Actually, since we removed the self-healing caller, all creates here should be user-initiated.
-                        if (item.action === 'create') {
-                            const row = objectToRow(mapCompanyToSheetRow(item.payload as Company), HEADERS.companies);
-                            await appendRow('companies', row);
-                        } else if (item.action === 'update') {
-                            const idx = await getRowIndexById('companies', item.id);
-                            if (idx) {
-                                const row = objectToRow(mapCompanyToSheetRow(item.payload as Company), HEADERS.companies);
-                                await updateRow(`companies!A${idx}`, row);
+                        // Check if it is a LEAD or a COMPANY
+                        const co = item.payload as Company;
+                        if (co.isLead) {
+                            if (item.action === 'create') {
+                                const row = objectToRow(mapLeadToSheetRow(co), HEADERS.leads);
+                                await appendRow('leads', row);
+                            } else if (item.action === 'update') {
+                                const idx = await getRowIndexById('leads', item.id);
+                                if (idx) {
+                                    const row = objectToRow(mapLeadToSheetRow(co), HEADERS.leads);
+                                    await updateRow(`leads!A${idx}`, row);
+                                } else {
+                                    // Not found in leads sheet (maybe was DB lead), so create it
+                                    const row = objectToRow(mapLeadToSheetRow(co), HEADERS.leads);
+                                    await appendRow('leads', row);
+                                }
                             }
-                        } else if (item.action === 'bulk_create') {
-                            // Import logic
-                            const rows = (item.payload as Company[]).map(c =>
-                                objectToRow(mapCompanyToSheetRow(c), HEADERS.companies)
-                            );
-                            await appendRows('companies', rows);
+                        } else {
+                            if (item.action === 'create') {
+                                const row = objectToRow(mapCompanyToSheetRow(co), HEADERS.companies);
+                                await appendRow('companies', row);
+                            } else if (item.action === 'update') {
+                                // Try companies sheet
+                                let idx = await getRowIndexById('companies', item.id);
+                                if (idx) {
+                                    const row = objectToRow(mapCompanyToSheetRow(co), HEADERS.companies);
+                                    await updateRow(`companies!A${idx}`, row);
+                                }
+                            } else if (item.action === 'bulk_create') {
+                                // Import logic
+                                const rows = (item.payload as Company[]).map(c =>
+                                    objectToRow(mapCompanyToSheetRow(c), HEADERS.companies)
+                                );
+                                await appendRows('companies', rows);
+                            }
                         }
                         break;
                     case 'database':

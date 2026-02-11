@@ -203,7 +203,7 @@ export const objectToRow = (obj: any, headers: string[]): any[] => {
     });
 };
 
-export const fetchSheetData = async (range: string) => {
+export const fetchSheetValues = async (range: string) => {
     try {
         if (!gapi.client) throw new Error("GAPI Client not ready");
 
@@ -211,7 +211,17 @@ export const fetchSheetData = async (range: string) => {
             spreadsheetId: SPREADSHEET_ID,
             range: range,
         });
-        return sheetToObjects(response.result.values || []);
+        return response.result.values || [];
+    } catch (error) {
+        console.error("Error fetching sheet values:", error);
+        throw error;
+    }
+};
+
+export const fetchSheetData = async (range: string) => {
+    try {
+        const values = await fetchSheetValues(range);
+        return sheetToObjects(values);
     } catch (error) {
         console.error("Error fetching sheet:", error);
         throw error;

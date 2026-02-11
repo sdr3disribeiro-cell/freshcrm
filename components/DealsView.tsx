@@ -238,6 +238,27 @@ const DealsView: React.FC<DealsViewProps> = ({ companies, onCreateCadence, onSel
                     <p className="text-slate-500 mt-1">Clientes propensos a comprar novamente (Baseado no histórico)</p>
                 </div>
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => {
+                            import('canvas-confetti').then((module) => {
+                                const confetti = module.default;
+                                confetti({
+                                    particleCount: 150,
+                                    spread: 100,
+                                    origin: { y: 0.6 }
+                                });
+                            });
+                            // Play Victory Sound
+                            import('../services/soundService').then(({ soundService }) => {
+                                soundService.playVictory();
+                            });
+                        }}
+                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg font-bold text-xs transition-colors shadow-sm"
+                        title="Celebrar Venda (Teste)"
+                    >
+                        🎉 Testar Celebração
+                    </button>
+
                     {selectedCompanyIds.size > 0 && (
                         <button
                             onClick={handleCreateCadence}
